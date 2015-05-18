@@ -1,0 +1,2 @@
+module Barrister
+end

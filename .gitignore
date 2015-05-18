@@ -1,0 +1,5 @@
+test/
+logs/
+
+rsync-exclude
+Gemfile.lock
