@@ -1,5 +1,6 @@
 test/
 logs/
 
+Rakefile
 rsync-exclude
 Gemfile.lock
