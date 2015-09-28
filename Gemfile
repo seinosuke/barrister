@@ -3,6 +3,7 @@ ruby '2.2.0'
 #ruby-gemset=barrister
 
 gem 'rake'
+gem 'i2c'
 
 group :development do
   gem 'pry'
