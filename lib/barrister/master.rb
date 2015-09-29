@@ -4,8 +4,8 @@ module Barrister
 
     attr_reader :slaves
 
-    def initialize
-      load_config
+    def initialize(config_file)
+      load_config(config_file)
       setup_slaves
 
       @field = Field.new(@config[:Field])
@@ -29,12 +29,12 @@ module Barrister
 
     # Load a config file
     # and set these contents to `@config`.
-    def load_config
-      unless File.exist?(Barrister::CONFIG_FILE)
-        raise IOError.new(Error::MESSAGES[:not_found])
+    def load_config(config_file)
+      unless File.exist?(config_file)
+        raise Errno::ENOENT, "A config file could not be found."
       end
 
-      @config = YAML.load_file(Barrister::CONFIG_FILE)
+      @config = YAML.load_file(config_file)
       @config.symbolize_keys!
     end
 
