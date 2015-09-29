@@ -25,6 +25,13 @@ module Barrister
         :driving_left => Slave::DrivingSlave.new(@i2c_device, addresses[:driving_left]),
         :sensing => Slave::SensingSlave.new(@i2c_device, addresses[:sensing]),
       }
+
+      @slaves.each do |_, slave|
+        unless slave.alive?
+          raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
+        end
+      end
+      puts "All of I2C connections are successful!"
     end
 
     # Load a config file
