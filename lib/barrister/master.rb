@@ -4,8 +4,8 @@ module Barrister
 
     attr_reader :slaves
 
-    def initialize(config_file)
-      load_config(config_file)
+    def initialize
+      load_config
       setup_slaves
 
       @field = Field.new(@config[:Field])
@@ -31,17 +31,18 @@ module Barrister
           raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
         end
       end
-      puts "All of I2C connections are successful!"
+      puts "All I2C connections are successful!"
     end
 
     # Load a config file
     # and set these contents to `@config`.
-    def load_config(config_file)
-      unless File.exist?(config_file)
+    def load_config
+      Barrister.set_defaults
+      unless File.exist?(Barrister.options[:config_file])
         raise Errno::ENOENT, "A config file could not be found."
       end
 
-      @config = YAML.load_file(config_file)
+      @config = YAML.load_file(Barrister.options[:config_file])
       @config.symbolize_keys!
     end
 
