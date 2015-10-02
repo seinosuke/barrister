@@ -34,8 +34,18 @@ module Barrister
       end
     end
 
-
+    # The specified object is set at (x, y).
     def set_object(x, y, type)
+      @nodes[x][y] = NODE_TYPE[type]
+    end
+
+    # Remove an object at (x, y).
+    # However, `:barrister` and `:box` are excluded.
+    def remove_object(x, y)
+      case @nodes[x][y]
+      when NODE_TYPE[:box], NODE_TYPE[:barrister]
+      else @nodes[x][y] = NODE_TYPE[:normal]
+      end
     end
 
     # Returns a string of a game field in human-readable form.

@@ -17,12 +17,9 @@ module Barrister
       # in `SLEEP_TIME`, a retry time interval.
       def count_retry(error, place)
         if (@cnt += 1) > RETRY_UPTO
-          if block_given?
-            yield
-          else
-            puts "Over a number of retry times."
-            exit 1
-          end
+          yield if block_given?
+          puts "Over a number of retry times."
+          exit 1
         end
         puts "#{error.class} is raised at #{place}."
         puts "This is the #{@cnt} times of retry."

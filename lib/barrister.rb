@@ -17,7 +17,9 @@ module Barrister
 
     :rotate_cw => 0x10,
     :rotate_ccw => 0x11,
-    :stop => 0x12
+    :stop => 0x12,
+    :turn_cw => 0x13,
+    :turn_cww => 0x14,
   }
 
   # Alias for Barrister::Master.new

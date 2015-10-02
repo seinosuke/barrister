@@ -5,15 +5,13 @@ module Barrister
     attr_reader :slaves
 
     def initialize
+      puts "Launch Barrister..."
       load_config
       setup_slaves
 
       @field = Field.new(@config[:Field])
       @position = @config[:Barrister][:initial_position]
       @angle = @config[:Barrister][:initial_angle]
-
-      # puts self
-      # printf "\e[#{@field.y_size * 3 + 1}A"; STDOUT.flush; sleep 1
     end
 
     # Set up slave arduino chips.
@@ -46,9 +44,38 @@ module Barrister
       @config.symbolize_keys!
     end
 
+    # Return values from all sensors.
+    def get_data
+      data = @slaves[:sensing].get_data
+      { :distance => data[1..3], :photo_ref => data[4..5] }
+    end
+
+    # The machine moves back and forward.
+    def move(forward = true)
+      @slaves[:driving_right].rotate(forward)
+      @slaves[:driving_left].rotate(forward)
+    end
+
+    # The machine turns on the spot.
+    def turn(cw = true)
+      @slaves[:driving_right].turn(cw)
+      @slaves[:driving_left].turn(!cw)
+    end
+
+    def stop
+      @slaves[:driving_right].stop
+      @slaves[:driving_left].stop
+    end
+
     def to_s
       @field.update(@position, @angle)
       @field.to_s
+    end
+
+    def print_flush
+      puts self
+      printf "\e[#{@field.y_size * 3 + 1}A"; STDOUT.flush
+      sleep 1
     end
   end
 end

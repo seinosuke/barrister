@@ -10,7 +10,7 @@ module Barrister
 
     DEFAULTS = {
       :config_file => File.expand_path('../../bin/config.yml', __FILE__),
-      :log_file => File.expand_path('../../bin/barrister.log', __FILE__),
+      :log_file => File.expand_path('../../log/barrister.log', __FILE__),
       :display_mode => :character,
     }.freeze
 
@@ -23,7 +23,7 @@ module Barrister
 
     # Create a hash of configuration options.
     def options
-      OPTIONS_KEYS.map { |key, _| [key, send(key)] }.to_h
+      OPTIONS_KEYS.map { |key| [key, send(key)] }.to_h
     end
 
     # Reset all options to their default values.
