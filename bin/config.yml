@@ -4,16 +4,80 @@ Field:
   known_area:
     pylon: [[1, 0], [3, 3], [4, 1], [5, 4], [5, 5], [7, 0], [7, 3], [9, 2]]
     box: [[1, 1], [4, 4], [5, 1], [6, 3]]
-  storage_space: [[9, 4], [9, 5], [9, 6]]
+    storage_space: [[9, 4], [9, 5], [9, 6]]
 
 Barrister:
   i2c_device: /dev/i2c-1
-  initial_position: [1, 6]
+  initial_position: [1, 5]
   initial_angle: 90
 
 ActionPlan:
-  - [[3, 4], true]
-  - [[1, 2], false]
+  -
+    to: [2, 5]
+    pylon: false
+  -
+    to: [2, 4]
+    pylon: false
+  -
+    to: [2, 3]
+    pylon: [3, 3]
+  -
+    to: [2, 2]
+    pylon: false
+  -
+    to: [2, 1]
+    pylon: false
+  -
+    to: [2, 0]
+    pylon: [1, 0]
+  -
+    to: [3, 0]
+    pylon: false
+  -
+    to: [4, 0]
+    pylon: [4, 1]
+  -
+    to: [4, 1]
+    pylon: false
+  -
+    to: [4, 2]
+    pylon: false
+  -
+    to: [4, 3]
+    pylon: false
+  -
+    to: [5, 3]
+    pylon: [5, 4]
+  -
+    to: [5, 4]
+    pylon: [5, 5]
+  -
+    to: [6, 4]
+    pylon: false
+  -
+    to: [7, 4]
+    pylon: [7, 3]
+  -
+    to: [7, 3]
+    pylon: false
+  -
+    to: [7, 2]
+    pylon: false
+  -
+    to: [7, 1]
+    pylon: [7, 0]
+  -
+    to: [8, 1]
+    pylon: false
+  -
+    to: [9, 1]
+    pylon: [9, 2]
+  -
+    to: [9, 2]
+    pylon: false
+  -
+    to: [9, 3]
+    pylon: false
 
 SlaveAddress:
   driving_right: 0x0A

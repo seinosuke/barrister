@@ -1,3 +1,4 @@
+require 'matrix'
 require 'i2c'
 require 'yaml'
 

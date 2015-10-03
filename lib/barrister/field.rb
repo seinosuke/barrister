@@ -4,10 +4,11 @@ module Barrister
       :normal => 0,
       :pylon => 1,
       :box => 2,
-      :barrister => 4
+      :barrister => 4,
+      :storage_space => 5,
     }
 
-    attr_accessor :nodes
+    attr_accessor :nodes, :barrister
     attr_reader :x_size, :y_size
 
     def initialize(config)
@@ -18,7 +19,7 @@ module Barrister
         Array.new(@y_size) { NODE_TYPE[:normal] }
       end
 
-      [:pylon, :box].each do |key|
+      [:pylon, :box, :storage_space].each do |key|
         config[:known_area][key].each do |x, y|
           @nodes[x][y] = NODE_TYPE[key]
         end
@@ -27,6 +28,9 @@ module Barrister
 
     # Set the position and the angle of this machine.
     def update(position, angle)
+      @barrister[:position].tap do |x, y|
+        @nodes[x][y] = NODE_TYPE[:normal]
+      end
       @barrister[:position] = position
       @barrister[:angle] = angle
       @barrister[:position].tap do |x, y|
@@ -80,6 +84,7 @@ module Barrister
           else "\e[46m  \e[0m  \e[46m  \e[0m"
           end
         when NODE_TYPE[:box] then "\e[43m#{" "*6}\e[0m"
+        when NODE_TYPE[:storage_space] then "\e[42m  \e[0m  \e[42m  \e[0m"
         else "\e[47m  \e[0m  \e[47m  \e[0m"
         end
       end.join
