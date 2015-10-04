@@ -1,6 +1,7 @@
 require 'matrix'
 require 'i2c'
 require 'yaml'
+require 'logger'
 
 require "barrister/extension"
 require "barrister/configuration"

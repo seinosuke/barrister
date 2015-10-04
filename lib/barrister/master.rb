@@ -5,15 +5,28 @@ module Barrister
     attr_reader :slaves, :action_plan
 
     def initialize
-      # puts "Launch Barrister..."
+      setup_logger
       load_config
       # setup_slaves
+      @logger.each_value { |log| log.info("Launch Barrister...") }
 
       @field = Field.new(@config[:Field])
       @position = @config[:Barrister][:initial_position]
       @angle = @config[:Barrister][:initial_angle]
       @field.barrister[:position] = Marshal.load(Marshal.dump(@position))
       make_plan
+    end
+
+    # Set up a logger variable.
+    def setup_logger
+      @logger = {
+        :stdout => Logger.new(STDOUT),
+        :file => Logger.new(Barrister.options[:log_file])
+      }
+      @logger.each_value do |log|
+        log.datetime_format = "%Y-%m-%d %H:%M:%S "
+      end
+      Barrister::Error.logger = @logger
     end
 
     # Load a config file
@@ -43,7 +56,7 @@ module Barrister
           raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
         end
       end
-      puts "All I2C connections are successful!"
+      @logger.each_value { |log| log.info("All I2C connections are successful!") }
     end
 
     # Make an action plan from `@config[:ActionPlan]`.
@@ -51,7 +64,10 @@ module Barrister
       from = Marshal.load(Marshal.dump(@position))
       present_angle = @angle
       @action_plan =[]
+
       @config[:ActionPlan].map do |action|
+        {:to => action[0], :pylon => action[1]}
+      end.map do |action|
         target_angle = dir_to_target((Vector[*action[:to]] - Vector[*from]).to_a)
         turning_plan(target_angle - present_angle)
         present_angle = target_angle
@@ -70,6 +86,7 @@ module Barrister
     # Return values from all sensors.
     def get_data
       data = @slaves[:sensing].get_data
+      @logger[:file].info("Get data from the sensing slave.")
       { :distance => data[1..3], :photo_ref => data[4..5] }
     end
 
@@ -83,6 +100,7 @@ module Barrister
         when 180 then Vector[0, -1]
         when 270 then Vector[-1, 0]
       end).to_a
+      @logger[:file].info("Action : move #{forward ? "forward" : "back"}")
     end
 
     # The machine turns on the spot.
@@ -91,15 +109,18 @@ module Barrister
       # @slaves[:driving_left].turn(!cw)
       @angle += cw ? 90 : -90
       @angle = 0 if @angle == 360
+      @logger[:file].info("Action : turn #{cw ? "cw" : "ccw"}")
     end
 
     def stop
       # @slaves[:driving_right].stop
       # @slaves[:driving_left].stop
+      @logger[:file].info("Action : stop")
     end
 
     def collect_pylon(x, y)
       @field.remove_object(x, y)
+      @logger[:file].info("Action : collect pylon")
     end
 
     def to_s

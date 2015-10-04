@@ -18,17 +18,25 @@ module Barrister
       def count_retry(error, place)
         if (@cnt += 1) > RETRY_UPTO
           yield if block_given?
-          puts "Over a number of retry times."
+          @logger.each_value do |log|
+            log.error("Over a number of retry times.")
+          end
           exit 1
         end
-        puts "#{error.class} is raised at #{place}."
-        puts "This is the #{@cnt} times of retry."
+        @logger.each_value do |log|
+          log.error("#{error.class} is raised at #{place}.")
+          log.info("This is the #{@cnt} times of retry.")
+        end
         sleep SLEEP_TIME
       end
 
       # Resets a counter.
       def reset_retry
         @cnt = 0
+      end
+
+      def logger=(val)
+        @logger = val
       end
     end
   end
