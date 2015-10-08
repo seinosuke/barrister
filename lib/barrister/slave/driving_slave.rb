@@ -8,6 +8,11 @@ module Barrister::Slave
       write(Barrister::COMMAND[cw ? :rotate_cw : :rotate_ccw])
     end
 
+    # A motor rotates without P control.
+    def turn(cw = true)
+      write(Barrister::COMMAND[cw ? :turn_cw : :turn_ccw])
+    end
+
     # Stop a stepper motor.
     def stop
       write(Barrister::COMMAND[:stop])

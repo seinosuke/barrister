@@ -13,5 +13,11 @@ module Barrister
         self
       end
     end
+
+    refine Symbol do
+      def +(other)
+        (self.to_s << other.to_s).to_sym
+      end
+    end
   end
 end
