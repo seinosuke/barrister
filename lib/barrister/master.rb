@@ -2,13 +2,14 @@ module Barrister
   class Master
     using Barrister::Extension
 
-    attr_reader :slaves, :action_plan
+    attr_accessor :logger
+    attr_reader :action_plan
 
     def initialize
       setup_logger
-      load_config
-      # setup_slaves
       @logger.each_value { |log| log.info("Launch Barrister...") }
+      load_config
+      setup_slaves
 
       @field = Field.new(@config[:Field])
       @position = @config[:Barrister][:initial_position]
@@ -83,17 +84,21 @@ module Barrister
       end
     end
 
-    # Return values from all sensors.
-    def get_data
-      data = @slaves[:sensing].get_data
-      @logger[:file].info("Get data from the sensing slave.")
-      { :distance => data[1..3], :photo_ref => data[4..5] }
+    # Get data of a distance from an object.
+    def get_distance
+      @slaves[:sensing].get_distance
+    end
+
+    # Return `true` if the machine was at a crossroads.
+    def on_cross?(threshold)
+      @slaves[:sensing].on_cross?(threshold)
     end
 
     # The machine moves back and forward.
     def move(forward = true)
-      # @slaves[:driving_right].rotate(forward)
-      # @slaves[:driving_left].rotate(forward)
+      @slaves[:driving_right].rotate(forward)
+      @slaves[:driving_left].rotate(forward)
+
       @position = (Vector[*@position] + case @angle
         when 0 then Vector[0, 1]
         when 90 then Vector[1, 0]
@@ -105,16 +110,18 @@ module Barrister
 
     # The machine turns on the spot.
     def turn(cw = true)
-      # @slaves[:driving_right].turn(cw)
-      # @slaves[:driving_left].turn(!cw)
+      @slaves[:driving_right].turn(!cw)
+      @slaves[:driving_left].turn(cw)
+
       @angle += cw ? 90 : -90
       @angle = 0 if @angle == 360
       @logger[:file].info("Action : turn #{cw ? "cw" : "ccw"}")
     end
 
     def stop
-      # @slaves[:driving_right].stop
-      # @slaves[:driving_left].stop
+      @slaves[:driving_right].stop
+      @slaves[:driving_left].stop
+
       @logger[:file].info("Action : stop")
     end
 

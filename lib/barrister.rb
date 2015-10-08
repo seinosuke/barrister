@@ -21,7 +21,10 @@ module Barrister
     :rotate_ccw => 0x11,
     :stop => 0x12,
     :turn_cw => 0x13,
-    :turn_cww => 0x14,
+    :turn_ccw => 0x14,
+
+    :detector_mode => 0x20,
+    :linetrace_mode => 0x21,
   }
 
   # Alias for Barrister::Master.new
