@@ -50,6 +50,7 @@ module Barrister
         :driving_right => Slave::DrivingSlave.new(@i2c_device, addresses[:driving_right]),
         :driving_left => Slave::DrivingSlave.new(@i2c_device, addresses[:driving_left]),
         :sensing => Slave::SensingSlave.new(@i2c_device, addresses[:sensing]),
+        :collecting => Slave::CollectingSlave.new(@i2c_device, addresses[:collecting]),
       }
 
       @slaves.each do |_, slave|
@@ -90,7 +91,7 @@ module Barrister
     end
 
     # Return `true` if the machine was at a crossroads.
-    def on_cross?(threshold)
+    def on_cross?(threshold = 100)
       @slaves[:sensing].on_cross?(threshold)
     end
 

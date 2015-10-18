@@ -18,8 +18,8 @@ ActionPlan:
   - [ [2, 2], false ]
   - [ [2, 1], false ]
   - [ [2, 0], [1, 0] ]
-  - [ [3, 0], false ]
-  - [ [4, 0], [4, 1] ]
+  - [ [2, 1], false ]
+  - [ [3, 1], [4, 1] ]
   - [ [4, 1], false ]
   - [ [4, 2], false ]
   - [ [4, 3], false ]
@@ -39,3 +39,4 @@ SlaveAddress:
   driving_right: 0x0A
   driving_left: 0x0B
   sensing: 0x0C
+  collecting: 0x0D
