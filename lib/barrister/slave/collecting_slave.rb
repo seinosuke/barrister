@@ -12,6 +12,11 @@ module Barrister::Slave
       write(Barrister::COMMAND[:st_stop])
     end
 
+    # The excitation of a stepper motor is turned off.
+    def st_off
+      write(Barrister::COMMAND[:st_off])
+    end
+
     # Rotate a DC motor.
     def dc_rotate(cw = true)
       write(Barrister::COMMAND[

@@ -101,10 +101,10 @@ module Barrister
       @slaves[:driving_left].rotate(forward)
 
       @position = (Vector[*@position] + case @angle
-        when 0 then Vector[0, 1]
-        when 90 then Vector[1, 0]
-        when 180 then Vector[0, -1]
-        when 270 then Vector[-1, 0]
+        when 0 then Vector[0, forward ? 1 : -1]
+        when 90 then Vector[forward ? 1 : -1, 0]
+        when 180 then Vector[0, forward ? -1 : 1]
+        when 270 then Vector[forward ? -1 : 1, 0]
       end).to_a
       @logger[:file].info("Action : move #{forward ? "forward" : "back"}")
     end
@@ -125,6 +125,41 @@ module Barrister
 
       @logger[:file].info("Action : stop")
     end
+
+    #
+    # collecting
+    #
+    ############################################
+
+    def st_rotate(cw = true)
+      @slaves[:collecting].st_rotate(cw)
+    end
+
+    def st_stop
+      @slaves[:collecting].st_stop
+    end
+
+    def st_off
+      @slaves[:collecting].st_off
+    end
+
+    def dc_rotate(cw = true)
+      @slaves[:collecting].dc_rotate(cw)
+    end
+
+    def dc_stop
+      @slaves[:collecting].dc_stop
+    end
+
+    def swing_arm(front = true)
+      @slaves[:collecting].swing_arm(front)
+    end
+
+    def hold_pylon(hold = true)
+      @slaves[:collecting].hold_pylon(hold)
+    end
+
+    ############################################
 
     def collect_pylon(x, y)
       @field.remove_object(x, y)
