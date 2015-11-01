@@ -4,12 +4,13 @@ module Barrister
     using Barrister::Extension
 
     attr_accessor :logger
-    attr_reader :action_plan
+    attr_reader :action_plan, :field
 
     def initialize
+      load_config
+      @debug = Barrister.options[:debug]
       setup_logger
       @logger.each_value { |log| log.info("Launch Barrister...") }
-      load_config
       setup_slaves
 
       @field = Field.new(@config[:Field])
@@ -54,9 +55,11 @@ module Barrister
         :collecting => Slave::CollectingSlave.new(@i2c_device, addresses[:collecting]),
       }
 
-      @slaves.each do |_, slave|
-        unless slave.alive?
-          raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
+      unless @debug
+        @slaves.each do |_, slave|
+          unless slave.alive?
+            raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
+          end
         end
       end
       @logger.each_value { |log| log.info("All I2C connections are successful!") }

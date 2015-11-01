@@ -6,8 +6,10 @@ module Barrister
 
     # The machine moves back and forward.
     def move(forward = true)
-      @slaves[:driving_right].rotate(forward)
-      @slaves[:driving_left].rotate(forward)
+      unless @debug
+        @slaves[:driving_right].rotate(forward)
+        @slaves[:driving_left].rotate(forward)
+      end
 
       @position = (Vector[*@position] + case @angle
         when 0 then Vector[0, forward ? 1 : -1]
@@ -20,8 +22,10 @@ module Barrister
 
     # The machine turns on the spot.
     def turn(cw = true)
-      @slaves[:driving_right].turn(!cw)
-      @slaves[:driving_left].turn(cw)
+      unless @debug
+        @slaves[:driving_right].turn(!cw)
+        @slaves[:driving_left].turn(cw)
+      end
 
       @angle += cw ? 90 : -90
       @angle = 0 if @angle == 360
@@ -29,8 +33,10 @@ module Barrister
     end
 
     def stop
-      @slaves[:driving_right].stop
-      @slaves[:driving_left].stop
+      unless @debug
+        @slaves[:driving_right].stop
+        @slaves[:driving_left].stop
+      end
 
       @logger[:file].info("Action : stop")
     end
@@ -54,7 +60,9 @@ module Barrister
     #
 
     def collect_pylon(x, y)
-      phase01; phase02; phase03; phase04
+      unless @debug
+        phase01; phase02; phase03; phase04
+      end
 
       @field.remove_object(x, y)
       @logger[:file].info("Action : collect pylon")

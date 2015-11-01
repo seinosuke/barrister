@@ -34,6 +34,8 @@ ActionPlan:
   - [ [9, 1], [9, 2] ]
   - [ [9, 2], false ]
   - [ [9, 3], false ]
+  - [ [9, 4], false ]
+  - [ [9, 5], false ]
 
 SlaveAddress:
   driving_right: 0x0A
