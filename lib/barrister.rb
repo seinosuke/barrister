@@ -11,6 +11,9 @@ require "barrister/action"
 require "barrister/master"
 require "barrister/slave"
 require "barrister/slave/base_slave"
+require "barrister/a_star/node"
+require "barrister/a_star/algorithm"
+require "barrister/a_star"
 
 module Barrister
   extend Configuration

@@ -56,6 +56,12 @@ module Barrister
       end
     end
 
+    def boxes
+      @x_size.times.to_a.product(@y_size.times.to_a).select do |x, y|
+        @nodes[x][y] == NODE_TYPE[:box]
+      end
+    end
+
     # Returns a string of a game field in human-readable form.
     def to_s
       @y_size.times.to_a.reverse.map do |y|

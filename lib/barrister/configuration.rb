@@ -6,12 +6,16 @@ module Barrister
       :config_file,
       :log_file,
       :debug,
+      :threshold,
+      :goal,
     ].freeze
 
     DEFAULTS = {
       :config_file => File.expand_path('../../bin/config.yml', __FILE__),
       :log_file => File.expand_path('../../log/barrister.log', __FILE__),
       :debug => false,
+      :threshold => 100,
+      :goal => [0, 11],
     }.freeze
 
     attr_accessor *OPTIONS_KEYS

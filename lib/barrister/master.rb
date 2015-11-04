@@ -3,7 +3,7 @@ module Barrister
     include Barrister::Action
     using Barrister::Extension
 
-    attr_accessor :logger, :threshold, :goal
+    attr_accessor :logger
     attr_reader :action_plan, :field
 
     EVASIVE_PATTERN = {
@@ -14,7 +14,6 @@ module Barrister
 
     def initialize
       load_config
-      @debug = Barrister.options[:debug]
       setup_logger
       @logger.each_value { |log| log.info("Launch Barrister...") }
       setup_slaves
@@ -48,6 +47,9 @@ module Barrister
 
       @config = YAML.load_file(Barrister.options[:config_file])
       @config.symbolize_keys!
+      @debug = Barrister.options[:debug]
+      @threshold = Barrister.options[:threshold]
+      @goal = Barrister.options[:goal]
     end
 
     # Set up slave arduino chips.
@@ -72,12 +74,13 @@ module Barrister
     end
 
     # Make an action plan from `@config[:ActionPlan]`.
-    def make_plan
+    def make_plan(original = nil)
       from = Marshal.load(Marshal.dump(@position))
       present_angle = @angle
       @action_plan =[]
+      original ||= @config[:ActionPlan]
 
-      @config[:ActionPlan].map do |action|
+      original.map do |action|
         {:to => action[0], :pylon => action[1]}
       end.map do |action|
         target_angle = dir_to_angle((Vector[*action[:to]] - Vector[*from]).to_a)
@@ -109,7 +112,7 @@ module Barrister
       loop do
         next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
         break if @position == @goal
-        if next_pos == @goal
+        if @angle == 0 && next_pos == @goal
           break if @field.nodes[next_pos[0]][next_pos[1]] == Field::NODE_TYPE[:box]
         end
 
@@ -148,6 +151,20 @@ module Barrister
       puts self
       printf "\e[#{@field.y_size * 3 + 1}A"; STDOUT.flush
       sleep 0.2
+    end
+
+    def will_be_back
+      options = {
+        :x_size => @field.x_size,
+        :y_size => @field.y_size,
+        :start => @position,
+        :goal => [9, 6],
+        :blocks => @field.boxes,
+      }
+      a_star = AStar.new(options)
+      a_star.start
+      make_plan(a_star.route.reverse.map { |pos| [pos, false] })
+      carry_out @action_plan
     end
 
     def carry_out(plan)
@@ -245,7 +262,6 @@ module Barrister
         right, left = case @angle
         when 0 then [1, -1]
         when 180 then [-1, 1]
-        # else return
         end
         right_pos = (Vector[*@position] + Vector[right, 0]).to_a
         if @field.nodes[right_pos[0]].nil?
