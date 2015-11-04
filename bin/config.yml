@@ -10,6 +10,8 @@ Barrister:
   i2c_device: /dev/i2c-1
   initial_position: [1, 5]
   initial_angle: 90
+  # initial_position: [10, 6]
+  # initial_angle: 0
 
 ActionPlan:
   - [ [2, 5], false ]

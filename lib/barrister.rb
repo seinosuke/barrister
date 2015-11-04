@@ -23,6 +23,8 @@ module Barrister
     :stop => 0x12,
     :turn_cw => 0x13,
     :turn_ccw => 0x14,
+    :rotate12_cw => 0x15,
+    :rotate12_ccw => 0x16,
 
     :detector_mode => 0x20,
     :linetrace_mode => 0x21,

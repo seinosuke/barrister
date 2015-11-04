@@ -20,6 +20,22 @@ module Barrister
       @logger[:file].info("Action : move #{forward ? "forward" : "back"}")
     end
 
+    # The machine moves back and forward.
+    def move12(forward = true)
+      unless @debug
+        @slaves[:driving_right].rotate12(forward)
+        @slaves[:driving_left].rotate12(forward)
+      end
+
+      @position = (Vector[*@position] + case @angle
+        when 0 then Vector[0, forward ? 1 : -1]
+        when 90 then Vector[forward ? 1 : -1, 0]
+        when 180 then Vector[0, forward ? -1 : 1]
+        when 270 then Vector[forward ? -1 : 1, 0]
+      end).to_a
+      @logger[:file].info("Action : move #{forward ? "forward" : "back"}")
+    end
+
     # The machine turns on the spot.
     def turn(cw = true)
       unless @debug
@@ -29,6 +45,7 @@ module Barrister
 
       @angle += cw ? 90 : -90
       @angle = 0 if @angle == 360
+      @angle = 270 if @angle == -90
       @logger[:file].info("Action : turn #{cw ? "cw" : "ccw"}")
     end
 
@@ -66,6 +83,16 @@ module Barrister
 
       @field.remove_object(x, y)
       @logger[:file].info("Action : collect pylon")
+    end
+
+    def release_pylons
+      unless @debug
+        dc_rotate(true); sleep 0.1
+        dc_rotate(false); sleep 0.1
+        dc_stop
+      end
+
+      @logger[:file].info("Action : release pylons")
     end
 
     # Move back.
