@@ -21,7 +21,6 @@ module Barrister::AStar
 
     # Reset nodes, open nodes and closed nodes to default state.
     def reset_nodes
-      # @shortest_route = Array.new(@x_size).map{ Array.new(@y_size, false) }
       @shortest_route = []
       @nodes = Array.new(@x_size).map{ Array.new(@y_size, nil) }
       @open_nodes = Array.new(@x_size).map{ Array.new(@y_size, nil) }
@@ -58,7 +57,6 @@ module Barrister::AStar
       node = @closed_nodes[@goal[0]][@goal[1]]
       loop do
         break if [node.from[0], node.from[1]] == @start
-        # @shortest_route[node.from[0]][node.from[1]] = true
         @shortest_route << node.from
         node = @closed_nodes[node.from[0]][node.from[1]]
       end

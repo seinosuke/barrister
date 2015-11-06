@@ -87,8 +87,9 @@ module Barrister
 
     def release_pylons
       unless @debug
-        dc_rotate(true); sleep 0.1
-        dc_rotate(false); sleep 0.1
+        dc_rotate(false); sleep 0.5
+        dc_stop; sleep 1
+        dc_rotate(true); sleep 0.5
         dc_stop
       end
 
@@ -97,34 +98,35 @@ module Barrister
 
     # Move back.
     def phase01
-      move(false); sleep 0.6
+      move(false); sleep 0.4
       stop; sleep 1
     end
 
     # Swing an arm to front and hold a pylon.
     def phase02
-      st_rotate(true); sleep 1.5 # wait for rising
+      st_rotate(true); sleep 0.2 # wait for rising
       st_stop; sleep 1
       swing_arm(true); sleep 2
       hold_pylon(false)
       st_rotate(false); sleep 1
-      st_off; sleep 3 # wait for falling
+      st_off; sleep 4 # wait for falling
       hold_pylon(true); sleep 1
     end
 
     # Let the pylon go.
     def phase03
-      st_rotate(true); sleep 5 # wait for rising
+      st_rotate(true); sleep 5.1 # wait for rising
       st_stop; sleep 1
       swing_arm(false); sleep 2
-      st_off; sleep 2 # wait for falling
+      st_off
       hold_pylon(false); sleep 1
     end
 
     # Return to a previous position.
     def phase04
       move(true)
-      sleep 0.1 until on_cross?(100)
+      sleep 0.1 until on_cross?(@threshold)
+      sleep 0.08
       stop
     end
 

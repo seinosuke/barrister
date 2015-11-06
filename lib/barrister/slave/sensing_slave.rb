@@ -3,8 +3,8 @@ module Barrister::Slave
 
     # Get data of a distance from an object.
     def get_distance
-      data = read(4, Barrister::COMMAND[:detector_mode])
-      data[1..3]
+      data = read(3, Barrister::COMMAND[:detector_mode])
+      data[1..2]
     end
 
     # Return `true` if the machine was at a crossroads.

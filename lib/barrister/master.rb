@@ -98,34 +98,58 @@ module Barrister
       end
     end
 
+    def detect_object
+      distance = get_distance
+      distance = get_distance
+      sleep 1
+      distance = get_distance
+      next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+      # p distance
+      # @field.nodes[next_pos[0]][next_pos[1]] = case distance
+      next_pos.tap do |x, y|
+        @field.nodes[x][y] = case distance
+        when ->(d) { d[0] < 20 && d[1] > 10 }
+          # puts "パイロン"
+          Field::NODE_TYPE[:pylon]
+        when ->(d) { d[0] < 15 && d[1] < 15 }
+          # puts "箱"
+          Field::NODE_TYPE[:box]
+        else
+          Field::NODE_TYPE[:normal]
+        end
+      end
+      next_pos
+    end
+
     def search
-      unknown_pylons = [[9, 10], [10, 8], [6, 6], [5, 11], [10, 11], [7, 9], [8, 9], [0, 8], [5, 9]]
-      unknown_boxes = [[9, 11], [10, 9], [8, 6], [7, 8], [6, 11], [5, 6], [3, 11], [3, 7], [2, 9], [0, 7], [0, 11]]
-      unknown_pylons.each do |x, y|
-        @field.set_object(x, y, :pylon)
-      end
-      unknown_boxes.each do |x, y|
-        @field.set_object(x, y, :box)
-      end
+      # unknown_pylons = [[9, 10], [10, 8], [6, 6], [5, 11], [10, 11], [7, 9], [8, 9], [0, 8], [5, 9]]
+      # unknown_boxes = [[9, 11], [10, 9], [8, 6], [7, 8], [6, 11], [5, 6], [3, 11], [3, 7], [2, 9], [0, 7], [0, 11]]
+      # unknown_pylons.each do |x, y|
+      #   @field.set_object(x, y, :pylon)
+      # end
+      # unknown_boxes.each do |x, y|
+      #   @field.set_object(x, y, :box)
+      # end
 
       plan = []
       loop do
-        next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        # next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        next_pos = detect_object
         break if @position == @goal
         if @angle == 0 && next_pos == @goal
-          break if @field.nodes[next_pos[0]][next_pos[1]] == Field::NODE_TYPE[:box]
+          break if next_pos.tap { |x, y| break @field.nodes[x][y] == Field::NODE_TYPE[:box] }
         end
 
         if next_pos[1] > 11 || next_pos[1] < 6
           plan = uturn_actions
         else
-          case @field.nodes[next_pos[0]][next_pos[1]]
+          case next_pos.tap { |x, y| break @field.nodes[x][y] }
           when Field::NODE_TYPE[:normal], Field::NODE_TYPE[:storage_space]
             plan.push({:method=>:move, :param=>true})
           when Field::NODE_TYPE[:pylon]
             plan.push({:method=>:collect_pylon, :param=>next_pos})
           when Field::NODE_TYPE[:box]
-            if @position[1] == 10 || @position[1] == 7
+            if (@position[1] == 10 && @angle == 0) || (@position[1] == 7 && @angle == 180)
               plan.push(*evasive_actions(EVASIVE_PATTERN[:on_side2]))
             else
               plan.push(*evasive_actions(EVASIVE_PATTERN[:normal]))
@@ -183,14 +207,14 @@ module Barrister
       case action[:method]
       when :move
         send(action[:method], *action[:param])
-        # sleep 1
-        # sleep 0.1 until on_cross?(@threshold)
-        # sleep 0.08
-        # stop; sleep 1
+        sleep 0.8
+        sleep 0.1 until on_cross?(@threshold)
+        sleep 0.08
+        stop; sleep 1
       when :turn
         send(action[:method], *action[:param])
-        # sleep 1.4
-        # stop; sleep 1
+        sleep 1.4
+        stop; sleep 1
       when :collect_pylon
         # move(false)
         # print_flush
@@ -210,9 +234,10 @@ module Barrister
         print_flush
         action = plan.shift
         break unless action
-        next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        # next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        next_pos = detect_object
         unless @field.nodes[next_pos[0]].nil?
-          case @field.nodes[next_pos[0]][next_pos[1]]
+          case next_pos.tap { |x, y| break @field.nodes[x][y] }
           when Field::NODE_TYPE[:pylon]
             added_action = {:method=>:collect_pylon, :param=>next_pos}
             take added_action
