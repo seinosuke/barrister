@@ -12,6 +12,21 @@ module Barrister
       :on_side2 => 2,
     }
 
+    MOVE_VOICES = [
+      "tsurai01.wav",
+      "tsurai02.wav",
+      "tsurai03.wav",
+      "tsurai04.wav",
+      "kaeritai.wav",
+      "dame.wav",
+    ]
+
+    PYLON_VOICES = [
+      "pylon01.wav",
+      "pylon02.wav",
+      "pylon03.wav",
+    ]
+
     def initialize
       load_config
       setup_logger
@@ -104,7 +119,7 @@ module Barrister
       sleep 1
       distance = get_distance
       next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
-      # p distance
+      p distance
       # @field.nodes[next_pos[0]][next_pos[1]] = case distance
       next_pos.tap do |x, y|
         @field.nodes[x][y] = case distance
@@ -199,6 +214,8 @@ module Barrister
         take action
       end
     rescue Interrupt
+      st_off
+      dc_stop
       stop
       exit 0
     end
@@ -206,21 +223,29 @@ module Barrister
     def take(action)
       case action[:method]
       when :move
+        thread = Thread.new do
+          system "aplay #{Dir.home}/work/open_jtalk/#{MOVE_VOICES.sample}"
+        end
         send(action[:method], *action[:param])
         sleep 0.8
         sleep 0.1 until on_cross?(@threshold)
         sleep 0.08
         stop; sleep 1
+        thread.join
       when :turn
         send(action[:method], *action[:param])
         sleep 1.4
         stop; sleep 1
       when :collect_pylon
+        thread = Thread.new do
+          system "aplay #{Dir.home}/work/open_jtalk/#{PYLON_VOICES.sample}"
+        end
         # move(false)
         # print_flush
         send(action[:method], *action[:param])
         # print_flush
         # move(true)
+        thread.join
 
       when :release_pylons
         send(action[:method], *action[:param])

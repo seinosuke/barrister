@@ -98,7 +98,7 @@ module Barrister
 
     # Move back.
     def phase01
-      move(false); sleep 0.4
+      move(false); sleep 0.45
       stop; sleep 1
     end
 
@@ -110,7 +110,10 @@ module Barrister
       hold_pylon(false)
       st_rotate(false); sleep 1
       st_off; sleep 4 # wait for falling
-      hold_pylon(true); sleep 1
+      hold_pylon(true); sleep 0.5
+      hold_pylon(false); sleep 0.5
+      st_rotate(false); sleep 0.1; st_off; sleep 1
+      hold_pylon(true); sleep 0.5
     end
 
     # Let the pylon go.
