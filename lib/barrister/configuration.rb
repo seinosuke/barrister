@@ -5,13 +5,17 @@ module Barrister
     OPTIONS_KEYS = [
       :config_file,
       :log_file,
-      :display_mode,
+      :debug,
+      :threshold,
+      :goal,
     ].freeze
 
     DEFAULTS = {
       :config_file => File.expand_path('../../bin/config.yml', __FILE__),
       :log_file => File.expand_path('../../log/barrister.log', __FILE__),
-      :display_mode => :character,
+      :debug => false,
+      :threshold => 100,
+      :goal => [0, 11],
     }.freeze
 
     attr_accessor *OPTIONS_KEYS

@@ -12,15 +12,16 @@ module Barrister
     attr_reader :x_size, :y_size
 
     def initialize(config)
+      @config = config
       @barrister = {}
-      @x_size = config[:x_size]
-      @y_size = config[:y_size]
+      @x_size = @config[:x_size]
+      @y_size = @config[:y_size]
       @nodes = Array.new(@x_size) do
         Array.new(@y_size) { NODE_TYPE[:normal] }
       end
 
       [:pylon, :box, :storage_space].each do |key|
-        config[:known_area][key].each do |x, y|
+        @config[:known_area][key].each do |x, y|
           @nodes[x][y] = NODE_TYPE[key]
         end
       end
@@ -29,7 +30,10 @@ module Barrister
     # Set the position and the angle of this machine.
     def update(position, angle)
       @barrister[:position].tap do |x, y|
-        @nodes[x][y] = NODE_TYPE[:normal]
+        @nodes[x][y] = NODE_TYPE[
+          @config[:known_area][:storage_space].include?([x, y]) ?
+          :storage_space : :normal
+        ]
       end
       @barrister[:position] = position
       @barrister[:angle] = angle
@@ -49,6 +53,12 @@ module Barrister
       case @nodes[x][y]
       when NODE_TYPE[:box], NODE_TYPE[:barrister]
       else @nodes[x][y] = NODE_TYPE[:normal]
+      end
+    end
+
+    def boxes
+      @x_size.times.to_a.product(@y_size.times.to_a).select do |x, y|
+        @nodes[x][y] == NODE_TYPE[:box]
       end
     end
 

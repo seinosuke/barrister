@@ -3,13 +3,19 @@ module Barrister::Slave
 
     # Get data of a distance from an object.
     def get_distance
-      read(3, Barrister::COMMAND[:detector_mode])
+      data = read(3, Barrister::COMMAND[:detector_mode])
+      data[1..2]
     end
 
     # Return `true` if the machine was at a crossroads.
     def on_cross?(threshold)
-      data = read(2, Barrister::COMMAND[:linetrace_mode])
-      data[0] > threshold && data[1] > threshold
+      data = read(3, Barrister::COMMAND[:linetrace_mode])
+      data[1] > threshold || data[2] > threshold
+    end
+
+    def reach_top?
+      data = read(3, Barrister::COMMAND[:collector_mode])
+      data[1] == 0x01
     end
   end
 end

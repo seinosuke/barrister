@@ -1,14 +1,36 @@
 module Barrister
   class Master
+    include Barrister::Action
     using Barrister::Extension
 
     attr_accessor :logger
-    attr_reader :action_plan
+    attr_reader :action_plan, :field
+
+    EVASIVE_PATTERN = {
+      :normal => 0,
+      :on_side1 => 1,
+      :on_side2 => 2,
+    }
+
+    MOVE_VOICES = [
+      "tsurai01.wav",
+      "tsurai02.wav",
+      "tsurai03.wav",
+      "tsurai04.wav",
+      "kaeritai.wav",
+      "dame.wav",
+    ]
+
+    PYLON_VOICES = [
+      "pylon01.wav",
+      "pylon02.wav",
+      "pylon03.wav",
+    ]
 
     def initialize
+      load_config
       setup_logger
       @logger.each_value { |log| log.info("Launch Barrister...") }
-      load_config
       setup_slaves
 
       @field = Field.new(@config[:Field])
@@ -40,6 +62,9 @@ module Barrister
 
       @config = YAML.load_file(Barrister.options[:config_file])
       @config.symbolize_keys!
+      @debug = Barrister.options[:debug]
+      @threshold = Barrister.options[:threshold]
+      @goal = Barrister.options[:goal]
     end
 
     # Set up slave arduino chips.
@@ -50,33 +75,37 @@ module Barrister
         :driving_right => Slave::DrivingSlave.new(@i2c_device, addresses[:driving_right]),
         :driving_left => Slave::DrivingSlave.new(@i2c_device, addresses[:driving_left]),
         :sensing => Slave::SensingSlave.new(@i2c_device, addresses[:sensing]),
+        :collecting => Slave::CollectingSlave.new(@i2c_device, addresses[:collecting]),
       }
 
-      @slaves.each do |_, slave|
-        unless slave.alive?
-          raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
+      unless @debug
+        @slaves.each do |_, slave|
+          unless slave.alive?
+            raise Barrister::I2cError, Error::MESSAGES[:invalid_i2c_responce]
+          end
         end
       end
       @logger.each_value { |log| log.info("All I2C connections are successful!") }
     end
 
     # Make an action plan from `@config[:ActionPlan]`.
-    def make_plan
+    def make_plan(original = nil)
       from = Marshal.load(Marshal.dump(@position))
       present_angle = @angle
       @action_plan =[]
+      original ||= @config[:ActionPlan]
 
-      @config[:ActionPlan].map do |action|
+      original.map do |action|
         {:to => action[0], :pylon => action[1]}
       end.map do |action|
-        target_angle = dir_to_target((Vector[*action[:to]] - Vector[*from]).to_a)
+        target_angle = dir_to_angle((Vector[*action[:to]] - Vector[*from]).to_a)
         turning_plan(target_angle - present_angle)
         present_angle = target_angle
         from = action[:to]
         @action_plan << {:method => :move, :param => true}
 
         if action[:pylon]
-          target_angle = dir_to_target((Vector[*action[:pylon]] - Vector[*from]).to_a)
+          target_angle = dir_to_angle((Vector[*action[:pylon]] - Vector[*from]).to_a)
           turning_plan(target_angle - present_angle)
           present_angle = target_angle
           @action_plan << {:method => :collect_pylon, :param => action[:pylon]}
@@ -84,50 +113,72 @@ module Barrister
       end
     end
 
-    # Get data of a distance from an object.
-    def get_distance
-      @slaves[:sensing].get_distance
+    def detect_object
+      distance = get_distance
+      distance = get_distance
+      sleep 1
+      distance = get_distance
+      next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+      p distance
+      # @field.nodes[next_pos[0]][next_pos[1]] = case distance
+      next_pos.tap do |x, y|
+        @field.nodes[x][y] = case distance
+        when ->(d) { d[0] < 20 && d[1] > 10 }
+          # puts "パイロン"
+          Field::NODE_TYPE[:pylon]
+        when ->(d) { d[0] < 15 && d[1] < 15 }
+          # puts "箱"
+          Field::NODE_TYPE[:box]
+        else
+          Field::NODE_TYPE[:normal]
+        end
+      end
+      next_pos
     end
 
-    # Return `true` if the machine was at a crossroads.
-    def on_cross?(threshold)
-      @slaves[:sensing].on_cross?(threshold)
-    end
+    def search
+      # unknown_pylons = [[9, 10], [10, 8], [6, 6], [5, 11], [10, 11], [7, 9], [8, 9], [0, 8], [5, 9]]
+      # unknown_boxes = [[9, 11], [10, 9], [8, 6], [7, 8], [6, 11], [5, 6], [3, 11], [3, 7], [2, 9], [0, 7], [0, 11]]
+      # unknown_pylons.each do |x, y|
+      #   @field.set_object(x, y, :pylon)
+      # end
+      # unknown_boxes.each do |x, y|
+      #   @field.set_object(x, y, :box)
+      # end
 
-    # The machine moves back and forward.
-    def move(forward = true)
-      @slaves[:driving_right].rotate(forward)
-      @slaves[:driving_left].rotate(forward)
+      plan = []
+      loop do
+        # next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        next_pos = detect_object
+        break if @position == @goal
+        if @angle == 0 && next_pos == @goal
+          break if next_pos.tap { |x, y| break @field.nodes[x][y] == Field::NODE_TYPE[:box] }
+        end
 
-      @position = (Vector[*@position] + case @angle
-        when 0 then Vector[0, 1]
-        when 90 then Vector[1, 0]
-        when 180 then Vector[0, -1]
-        when 270 then Vector[-1, 0]
-      end).to_a
-      @logger[:file].info("Action : move #{forward ? "forward" : "back"}")
-    end
+        if next_pos[1] > 11 || next_pos[1] < 6
+          plan = uturn_actions
+        else
+          case next_pos.tap { |x, y| break @field.nodes[x][y] }
+          when Field::NODE_TYPE[:normal], Field::NODE_TYPE[:storage_space]
+            plan.push({:method=>:move, :param=>true})
+          when Field::NODE_TYPE[:pylon]
+            plan.push({:method=>:collect_pylon, :param=>next_pos})
+          when Field::NODE_TYPE[:box]
+            if (@position[1] == 10 && @angle == 0) || (@position[1] == 7 && @angle == 180)
+              plan.push(*evasive_actions(EVASIVE_PATTERN[:on_side2]))
+            else
+              plan.push(*evasive_actions(EVASIVE_PATTERN[:normal]))
+            end
+          end
+        end
 
-    # The machine turns on the spot.
-    def turn(cw = true)
-      @slaves[:driving_right].turn(!cw)
-      @slaves[:driving_left].turn(cw)
-
-      @angle += cw ? 90 : -90
-      @angle = 0 if @angle == 360
-      @logger[:file].info("Action : turn #{cw ? "cw" : "ccw"}")
-    end
-
-    def stop
-      @slaves[:driving_right].stop
-      @slaves[:driving_left].stop
-
-      @logger[:file].info("Action : stop")
-    end
-
-    def collect_pylon(x, y)
-      @field.remove_object(x, y)
-      @logger[:file].info("Action : collect pylon")
+        carry_out_for_unknownarea(plan)
+      end
+      print_flush
+    rescue Interrupt
+      stop
+      puts self
+      exit 0
     end
 
     def to_s
@@ -141,7 +192,93 @@ module Barrister
       sleep 0.2
     end
 
+    def will_be_back
+      options = {
+        :x_size => @field.x_size,
+        :y_size => @field.y_size,
+        :start => @position,
+        :goal => [9, 6],
+        :blocks => @field.boxes,
+      }
+      a_star = AStar.new(options)
+      a_star.start
+      make_plan(a_star.route.reverse.map { |pos| [pos, false] })
+      carry_out @action_plan
+    end
+
+    def carry_out(plan)
+      loop do
+        print_flush
+        action = plan.shift
+        break unless action
+        take action
+      end
+    rescue Interrupt
+      st_off
+      dc_stop
+      stop
+      exit 0
+    end
+
+    def take(action)
+      case action[:method]
+      when :move
+        thread = Thread.new do
+          system "aplay #{Dir.home}/work/open_jtalk/#{MOVE_VOICES.sample}"
+        end
+        send(action[:method], *action[:param])
+        sleep 0.8
+        sleep 0.1 until on_cross?(@threshold)
+        sleep 0.08
+        stop; sleep 1
+        thread.join
+      when :turn
+        send(action[:method], *action[:param])
+        sleep 1.4
+        stop; sleep 1
+      when :collect_pylon
+        thread = Thread.new do
+          system "aplay #{Dir.home}/work/open_jtalk/#{PYLON_VOICES.sample}"
+        end
+        # move(false)
+        # print_flush
+        send(action[:method], *action[:param])
+        # print_flush
+        # move(true)
+        thread.join
+
+      when :release_pylons
+        send(action[:method], *action[:param])
+      end
+    end
+
     private
+
+    def carry_out_for_unknownarea(plan)
+      loop do
+        print_flush
+        action = plan.shift
+        break unless action
+        # next_pos = (Vector[*@position] + Vector[*angle_to_dir]).to_a
+        next_pos = detect_object
+        unless @field.nodes[next_pos[0]].nil?
+          case next_pos.tap { |x, y| break @field.nodes[x][y] }
+          when Field::NODE_TYPE[:pylon]
+            added_action = {:method=>:collect_pylon, :param=>next_pos}
+            take added_action
+            print_flush
+          when Field::NODE_TYPE[:box]
+            if @angle == 270 && action[:method] == :move
+              added_plan = evasive_actions(EVASIVE_PATTERN[:on_side1])
+              carry_out(added_plan)
+              plan.unshift({:method=>:move, :param=>true})
+              redo
+            end
+          end
+        end
+        take action
+      end
+    end
 
     def turning_plan(diff_angle)
       case diff_angle
@@ -151,12 +288,115 @@ module Barrister
       end
     end
 
-    def dir_to_target(direction)
+    def dir_to_angle(direction)
       case direction
       when [1, 0] then 90
       when [-1, 0] then 270
       when [0, 1] then 0
       when [0, -1] then 180
+      end
+    end
+
+    def angle_to_dir
+      case @angle
+      when 0 then [0, 1]
+      when 90 then [1, 0]
+      when 180 then [0, -1]
+      when 270 then [-1, 0]
+      end
+    end
+
+    def evasive_actions(pattern = EVASIVE_PATTERN[:normal])
+      case pattern
+      when EVASIVE_PATTERN[:normal]
+        right, left = case @angle
+        when 0 then [1, -1]
+        when 180 then [-1, 1]
+        end
+        right_pos = (Vector[*@position] + Vector[right, 0]).to_a
+        if @field.nodes[right_pos[0]].nil?
+          left_evasive_actions
+        else
+          right_evasive_actions
+        end
+
+      when EVASIVE_PATTERN[:on_side1]
+        case @position[1]
+        when 11
+          [
+            {:method=>:turn, :param=>false},
+            {:method=>:move, :param=>true},
+            {:method=>:turn, :param=>true},
+          ]
+        when 6
+          [
+            {:method=>:turn, :param=>true},
+            {:method=>:move, :param=>true},
+            {:method=>:turn, :param=>false},
+          ]
+        end
+      when EVASIVE_PATTERN[:on_side2]
+        case @position[1]
+        when 10
+          [
+            {:method=>:turn, :param=>false},
+            {:method=>:move, :param=>true},
+            {:method=>:turn, :param=>true},
+            {:method=>:turn, :param=>false},
+            {:method=>:turn, :param=>false},
+          ]
+        when 7
+          [
+            {:method=>:turn, :param=>true},
+            {:method=>:move, :param=>true},
+            {:method=>:turn, :param=>false},
+            {:method=>:turn, :param=>true},
+            {:method=>:turn, :param=>true},
+          ]
+        end
+      end
+    end
+
+    def right_evasive_actions
+      [
+        {:method=>:turn, :param=>true},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>false},
+        {:method=>:move, :param=>true},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>false},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>true},
+      ]
+    end
+
+    def left_evasive_actions
+      [
+        {:method=>:turn, :param=>false},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>true},
+        {:method=>:move, :param=>true},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>true},
+        {:method=>:move, :param=>true},
+        {:method=>:turn, :param=>false},
+      ]
+    end
+
+    def uturn_actions
+      case @angle
+      when 0
+        [
+          {:method=>:turn, :param=>false},
+          {:method=>:move, :param=>true},
+          {:method=>:turn, :param=>false},
+        ]
+      when 180
+        [
+          {:method=>:turn, :param=>true},
+          {:method=>:move, :param=>true},
+          {:method=>:turn, :param=>true},
+        ]
       end
     end
   end

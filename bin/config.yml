@@ -10,6 +10,8 @@ Barrister:
   i2c_device: /dev/i2c-1
   initial_position: [1, 5]
   initial_angle: 90
+  # initial_position: [10, 6]
+  # initial_angle: 0
 
 ActionPlan:
   - [ [2, 5], false ]
@@ -18,8 +20,8 @@ ActionPlan:
   - [ [2, 2], false ]
   - [ [2, 1], false ]
   - [ [2, 0], [1, 0] ]
-  - [ [3, 0], false ]
-  - [ [4, 0], [4, 1] ]
+  - [ [2, 1], false ]
+  - [ [3, 1], [4, 1] ]
   - [ [4, 1], false ]
   - [ [4, 2], false ]
   - [ [4, 3], false ]
@@ -34,8 +36,11 @@ ActionPlan:
   - [ [9, 1], [9, 2] ]
   - [ [9, 2], false ]
   - [ [9, 3], false ]
+  - [ [9, 4], false ]
+  - [ [9, 5], false ]
 
 SlaveAddress:
   driving_right: 0x0A
   driving_left: 0x0B
   sensing: 0x0C
+  collecting: 0x0D
